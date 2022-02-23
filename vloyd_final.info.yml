@@ -1,0 +1,5 @@
+name: "vloyd's Final Module"
+type: module
+description: "This Module Let's You Work With Years Tables and Validate It"
+core_version_requirement: ^9.0
+package: vloyd

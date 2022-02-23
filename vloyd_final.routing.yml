@@ -1,0 +1,7 @@
+vloyd_final.main:
+  path: '/vloyd/table'
+  defaults:
+    _form: '\Drupal\vloyd_final\Form\VloydTable'
+    _title: 'Form Table'
+  requirements:
+    _permission: 'access content'

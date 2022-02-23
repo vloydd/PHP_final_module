@@ -1,0 +1,4 @@
+vloyd_final_libraries:
+  css:
+    base:
+      css/style.css: {}
