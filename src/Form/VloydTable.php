@@ -42,7 +42,7 @@ class VloydTable extends FormBase {
     // Made Just for Fun)).
     $form['message'] = [
       '#type' => 'markup',
-      '#markup' => '<h2 class="form_message_intro">Hello! Now You Can Use this Table to Work with It.</h2>',
+      '#markup' => '<h2 class="form-intro">Hello! Now You Can Use this Table to Work with It.</h2>',
     ];
     // Adds a New Row.
     $form['addRow'] = [
@@ -67,6 +67,7 @@ class VloydTable extends FormBase {
       ],
     ];
     // Calls to Function that's Builds Table(-s).
+    // There's a variable 'tb' - it's counter for tables. Start from 0.
     $this->tablesConfigure($form, $form_state, 0);
     // Submits.
     $form['actions']['submit'] = [
@@ -80,7 +81,7 @@ class VloydTable extends FormBase {
   }
 
   /**
-   * Ajax Refreshing.
+   * Refreshes Ajax.
    *
    * @param array $form
    *   Our Form.
@@ -95,26 +96,56 @@ class VloydTable extends FormBase {
   }
 
   /**
-   * Recursive Function Used to Build Rows in Table, and it's Amount.
+   * Recursive Function Builds Tables, and it's Amount.
+   *
+   * @param array $form
+   *   Our Form.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   It's Form State.
+   * @param int $tb
+   *   It's Table Key(Current Position of Recursive Function).
+   */
+  public function tablesConfigure(array &$form, FormStateInterface $form_state, int $tb) {
+    // This Time We Move Down->Up.
+    // Condition of Recursion.
+    if ($tb < $this->table) {
+      // Creating a New Table with Header.
+      $form["table$tb"] = [
+        '#type' => 'table',
+        '#header' => $this->addHeader(),
+        '#empty' => $this->t('There is no Data Available(.'),
+        '#tree' => TRUE,
+      ];
+      // Rows Amount to Use it in Recursive Function for Rows.
+      $rw = $this->row;
+      // Recursive Function for Rows.
+      $rows_type = gettype($this->rowsConfigure($form["table$tb"], $form_state, --$rw, $tb));
+      $this->rowsConfigure($form["table$tb"], $form_state, --$rw, $tb);
+      // We Add Amount Every Time BC We Going Down->Up.
+      $tables_config = $this->tablesConfigure($form, $form_state, ++$tb);
+      // Recursion Goes On.
+      return $tables_config;
+    }
+  }
+
+  /**
+   * Recursive Function, Builds Rows in Table, and it's Amount.
    *
    * @param array $single_table
-   *   Our Table.
+   *   Our Current Table.
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   It's FormState.
    * @param int $rw
    *   It's Row Key(Position).
    * @param int $table_value
-   *   Table Position.
-   *
-   * @return array
-   *   Return Rows in Table.
+   *   Current Table Position.
    */
   public function rowsConfigure(array &$single_table, FormStateInterface $form_state, int $rw, int $table_value) {
     // Getting Header of the Table.
     $headerSection = $this->addHeader();
     // Getting Disabled Values (Q-s, Years and YTD).
     $disabled_cells = $this->getDisabledCells();
-    // Condition for Exit from Recursion.
+    // Condition of Recursion.
     // If there's Any Row.
     if ($rw >= 0) {
       foreach ($headerSection as $key => $value) {
@@ -129,7 +160,7 @@ class VloydTable extends FormBase {
         if (array_key_exists($key, $disabled_cells)) {
           // And We Shut that Cell Down.
           $single_table["row$rw"][$key]['#attributes']['disabled'] = TRUE;
-          // Rounding by Precision (Using it in Submit).
+          // Rounding by Precision (Using it in submitForm).
           $value = $form_state->getValue(["table$table_value", "row$rw", $key], 0);
           $single_table["row$rw"][$key]['#default_value'] = $value;
         }
@@ -138,41 +169,6 @@ class VloydTable extends FormBase {
       $rows_config = $this->rowsConfigure($single_table, $form_state, --$rw, $table_value);
       // Recursion Goes On.
       return $rows_config;
-    }
-  }
-
-  /**
-   * Recursive Function Used to Build Tables, and it's Amount.
-   *
-   * @param array $form
-   *   Our Form.
-   * @param \Drupal\Core\Form\FormStateInterface $form_state
-   *   It's Form State.
-   * @param int $tb
-   *   It's Table Key(Current Position of Recursive Function).
-   *
-   * @return array
-   *   Return Tables.
-   */
-  public function tablesConfigure(array &$form, FormStateInterface $form_state, int $tb) {
-    // This Time We Move Down->Up.
-    // Condition for Exit from Recursion.
-    if ($tb < $this->table) {
-      // Creating a New Table with Header and Empty Message.
-      $form["table$tb"] = [
-        '#type' => 'table',
-        '#header' => $this->addHeader(),
-        '#empty' => $this->t('There is no Data Available(.'),
-        '#tree' => TRUE,
-      ];
-      // Rows Amount to Use it in Recursive Function for Rows.
-      $rw = $this->row;
-      // Recursive Function for Rows.
-      $this->rowsConfigure($form["table$tb"], $form_state, --$rw, $tb);
-      // We Add Amount Every Time BC We Going Down->Up.
-      $tables_config = $this->tablesConfigure($form, $form_state, ++$tb);
-      // Recursion Goes On.
-      return $tables_config;
     }
   }
 
@@ -215,7 +211,7 @@ class VloydTable extends FormBase {
   }
 
   /**
-   * Used to Disable Certain Cells in Table.
+   * Helps Disable Certain Cells in Table.
    *
    * @return array
    *   Returns Array of Disabled Cells.
@@ -267,11 +263,11 @@ class VloydTable extends FormBase {
   /**
    * Checks if the Cell Value is Not Empty.
    *
-   * @param string|int|array $value
+   * @param array|int|string $value
    *   Cell Value.
    *
    * @return bool
-   *   Return true or false.
+   *   Returns True if Value is No Empty or False.
    */
   public function notEmpty($value): bool {
     // Check if Value isn't Empty.
@@ -290,11 +286,12 @@ class VloydTable extends FormBase {
     $table_values = [];
     // Array for Checked Values.
     $filled_arr = [];
-    // Array for Checked Values (Starting Keys).
+    // Array for Checked Values (Starting Entries Keys).
     $start_key = [];
-    // Array for Checked Values (Ending Keys).
+    // Array for Checked Values (Ending Entries Keys).
     $end_key = [];
-    // Getting No Empty Values.
+    // Getting Not Empty Values.
+    // Variable 'tb' is for tables counter.
     for ($tb = 0; $tb < $this->table; $tb++) {
       // Get Values from One Table in One-dimensional Array (All Rows in One).
       $values = $this->getTablesValues($tables_all["table$tb"]);
@@ -304,12 +301,15 @@ class VloydTable extends FormBase {
       $filled_cells = 0;
       // Going Through Array of All Cells in All Rows in One Table.
       for ($rows_values = 0; $rows_values <= count($table_values[$tb]) - 1; $rows_values++) {
-        // If There's Different Values in Tables - Knock it Out.
+        // Our Validation will Work In Two Steps:
+        // First - Checking Between Tables, Second - Inside Specific Table.
+        // First Step: If There's Different Values in Tables - Knock it Out.
+        // Compare Tables Values with Same Values(Positions) in First.
         if ($this->notEmpty($table_values[0][$rows_values]) !== $this->notEmpty($table_values[$tb][$rows_values])) {
           $form_state->setErrorByName($tb, $this->t('Invalid Tables!'));
           break 2;
         }
-        // Validation Inside of Table.
+        // Second Step: Validation Inside of Table.
         // We're Going Through Two Sides Of Array: Start and End.
         // Start Side: If Cell is Not Empty.
         if ($this->notEmpty($table_values[$tb][$rows_values])) {
@@ -317,7 +317,7 @@ class VloydTable extends FormBase {
           // We Need to Know First Entry in this Array.
           $start_key[$tb][] = $rows_values;
           $filled_cells++;
-          // Filling No Empty Values in Array.
+          // Filling No Empty Values in Array. We Need to Know the Size of it.
           $filled_arr[$tb][$rows_values] = $table_values[$tb][$rows_values];
         }
         // End Side: If Cell is Not Empty.
@@ -335,7 +335,7 @@ class VloydTable extends FormBase {
         // 15 - 6 == 10 - 1.
         // If Our 'example' has Failed - Knock it Out.
         if ($end_key[$tb][0] - $start_key[$tb][0] != $filled_cells - 1) {
-          $form_state->setErrorByName($tb, $this->t('Invalid!'));
+          $form_state->setErrorByName($tb, $this->t('Invalid Values!'));
           break;
         }
       }
